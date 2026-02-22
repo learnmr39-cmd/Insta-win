@@ -1,91 +1,93 @@
 <!DOCTYPE html>
 <html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin</title>
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+color:white;
+padding:15px;
+}
+.box{
+background:#141422;
+padding:15px;
+margin-bottom:15px;
+border-radius:12px;
+box-shadow:0 0 15px gold;
+}
+button{
+padding:8px;
+background:gold;
+border:none;
+border-radius:6px;
+}
+</style>
+</head>
+<body>
 
-<body style="background:#0b0b12;color:white;font-family:Arial">
+<h2 style="color:gold;text-align:center">Admin Panel</h2>
 
-<h2>Admin Panel</h2>
-
-<h3>Deposits</h3>
-
+<h3>Pending Deposits</h3>
 <div id="deposits"></div>
 
-<h3>Withdraws</h3>
-
+<h3>Pending Withdraws</h3>
 <div id="withdraws"></div>
 
 <script>
 
 function loadDeposits(){
-
 fetch("/admin/deposits")
-.then(res=>res.json())
+.then(r=>r.json())
 .then(data=>{
-
 let html="";
-
 data.forEach(d=>{
 html+=`
-<div style="border:1px solid gold;padding:10px;margin:10px">
-UserID: ${d.userId} <br>
-Amount: ${d.amount} <br>
-Method: ${d.method} <br>
-TRX: ${d.trxId} <br>
+<div class="box">
+User: ${d.userId}<br>
+Amount: ${d.amount}<br>
+TRX: ${d.trxId}<br>
 <button onclick="approveDeposit(${d.id},${d.userId},${d.amount})">Approve</button>
-</div>
-`;
+</div>`;
 });
-
 document.getElementById("deposits").innerHTML=html;
-
 });
-
 }
 
 function approveDeposit(id,userId,amount){
-
 fetch("/admin/approve-deposit",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({id,userId,amount})
-})
-.then(()=>loadDeposits());
-
+}).then(()=>loadDeposits());
 }
 
 function loadWithdraws(){
-
 fetch("/admin/withdraws")
-.then(res=>res.json())
+.then(r=>r.json())
 .then(data=>{
-
 let html="";
-
 data.forEach(w=>{
 html+=`
-<div style="border:1px solid red;padding:10px;margin:10px">
-UserID: ${w.userId} <br>
-Amount: ${w.amount} <br>
-Account: ${w.account} <br>
-<button onclick="approveWithdraw(${w.id})">Approve</button>
-</div>
-`;
+<div class="box">
+User: ${w.userId}<br>
+Amount: ${w.amount}<br>
+Account: ${w.account}<br>
+<button onclick="approveWithdraw(${w.id},${w.userId},${w.amount})">Approve</button>
+</div>`;
 });
-
 document.getElementById("withdraws").innerHTML=html;
-
 });
-
 }
 
-function approveWithdraw(id){
-
+function approveWithdraw(id,userId,amount){
 fetch("/admin/approve-withdraw",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({id})
-})
-.then(()=>loadWithdraws());
-
+body:JSON.stringify({id,userId,amount})
+}).then(()=>loadWithdraws());
 }
 
 loadDeposits();
