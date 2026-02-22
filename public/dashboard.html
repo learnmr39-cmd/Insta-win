@@ -1,1 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
 
+<body>
+
+<div class="container">
+
+<h2>Lucky Draw Dashboard</h2>
+
+<h3 id="balance">Balance: 0</h3>
+
+<h4>Deposit</h4>
+<form method="POST" action="/deposit">
+<input type="number" name="amount" placeholder="Enter amount" required>
+<button type="submit">Deposit</button>
+</form>
+
+<h4>Withdraw</h4>
+<form method="POST" action="/withdraw">
+<input type="number" name="amount" placeholder="Enter amount" required>
+<button type="submit">Withdraw</button>
+</form>
+
+<h3>Lucky Wheel</h3>
+
+<canvas id="wheel" width="300" height="300"></canvas>
+
+<br><br>
+
+<button onclick="spin()">Spin Lucky Wheel</button>
+
+</div>
+
+<script>
+
+fetch("/balance")
+.then(res => res.json())
+.then(data => {
+document.getElementById("balance").innerText = "Balance: " + data.balance;
+});
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+function drawWheel(){
+const colors=["gold","red","blue","green","purple"];
+for(let i=0;i<5;i++){
+ctx.beginPath();
+ctx.moveTo(150,150);
+ctx.arc(150,150,150,i*(Math.PI*2/5),(i+1)*(Math.PI*2/5));
+ctx.fillStyle=colors[i];
+ctx.fill();
+}
+}
+
+drawWheel();
+
+function spin(){
+const rewards=[0,10,20,50,100];
+const win=rewards[Math.floor(Math.random()*rewards.length)];
+alert("You won "+win);
+}
+
+</script>
+
+</body>
+</html>
