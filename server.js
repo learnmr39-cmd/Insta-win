@@ -1,15 +1,79 @@
-const express = require("express"); const bodyParser = require("body-parser"); const session = require("express-session"); const path = require("path");
+const express = require("express");
+const bodyParser = require("body-parser");
+const session = require("express-session");
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true })); app.use(express.static("public"));
-app.use(session({ secret: "secretkey", resave: false, saveUninitialized: true }));
-let users = [];
-function auth(req, res, next) { if (!req.session.user) return res.redirect("/"); next(); }
-app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "public/login.html")); });
-app.get("/register", (req, res) => { res.sendFile(path.join(__dirname, "public/register.html")); });
-app.post("/register", (req, res) => { const { username, password } = req.body; users.push({ username, password, balance: 0 }); res.redirect("/"); });
-app.post("/login", (req, res) => { const { username, password } = req.body; const user = users.find(u => u.username === username && u.password === password); if (!user) return res.send("Invalid credentials"); req.session.user = user; res.redirect("/dashboard"); });
-app.get("/dashboard", auth, (req, res) => { res.sendFile(path.join(__dirname, "public/dashboard.html")); });
-app.post("/deposit", auth, (req, res) => { req.session.user.balance += Number(req.body.amount); res.redirect("/dashboard"); });
-app.post("/withdraw", auth, (req, res) => { req.session.user.balance -= Number(req.body.amount); res.redirect("/dashboard"); });
-app.get("/balance", auth, (req, res) => { res.json({ balance: req.session.user.balance }); });
-app.listen(3000, () => console.log("App running"));
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static("public"));
+
+app.use(session({
+  secret: "secretkey",
+  resave: false,
+  saveUninitialized: true
+}));
+
+const db = new sqlite3.Database("./database.db");
+
+db.serialize(() => {
+  db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, password TEXT, balance INTEGER DEFAULT 0)");
+  db.run("CREATE TABLE IF NOT EXISTS deposits (id INTEGER PRIMARY KEY, userId INTEGER, amount INTEGER, method TEXT, trxId TEXT, status TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS withdraws (id INTEGER PRIMARY KEY, userId INTEGER, amount INTEGER, method TEXT, account TEXT, status TEXT)");
+});
+
+function auth(req,res,next){
+  if(!req.session.user) return res.redirect("/");
+  next();
+}
+
+app.get("/", (req,res)=>{
+  res.sendFile(path.join(__dirname,"public/login.html"));
+});
+
+app.get("/register",(req,res)=>{
+  res.sendFile(path.join(__dirname,"public/register.html"));
+});
+
+app.post("/register",(req,res)=>{
+  const {username,password}=req.body;
+  db.run("INSERT INTO users(username,password) VALUES(?,?)",[username,password]);
+  res.redirect("/");
+});
+
+app.post("/login",(req,res)=>{
+  const {username,password}=req.body;
+  db.get("SELECT * FROM users WHERE username=? AND password=?",[username,password],(err,user)=>{
+    if(!user) return res.send("Invalid login");
+    req.session.user=user;
+    res.redirect("/dashboard");
+  });
+});
+
+app.get("/dashboard",auth,(req,res)=>{
+  res.sendFile(path.join(__dirname,"public/dashboard.html"));
+});
+
+app.get("/balance",auth,(req,res)=>{
+  db.get("SELECT balance FROM users WHERE id=?",[req.session.user.id],(err,row)=>{
+    res.json({balance:row.balance});
+  });
+});
+
+app.post("/deposit",auth,(req,res)=>{
+  const {amount,method,trxId}=req.body;
+  db.run("INSERT INTO deposits(userId,amount,method,trxId,status) VALUES(?,?,?,?,?)",
+  [req.session.user.id,amount,method,trxId,"pending"]);
+  res.json({message:"Deposit request submitted"});
+});
+
+app.post("/withdraw",auth,(req,res)=>{
+  const {amount,method,account}=req.body;
+  db.run("INSERT INTO withdraws(userId,amount,method,account,status) VALUES(?,?,?,?,?)",
+  [req.session.user.id,amount,method,account,"pending"]);
+  res.json({message:"Withdraw request submitted"});
+});
+
+app.listen(3000,()=>console.log("App running"));
