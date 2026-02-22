@@ -12,8 +12,6 @@ background:#0b0b12;
 color:white;
 }
 
-/* SIDE MENU */
-
 .menu{
 position:fixed;
 left:-260px;
@@ -154,6 +152,9 @@ transition:transform 5s cubic-bezier(.17,.67,.83,.67);
 
 </div>
 
+<h4>Your Deposit History</h4>
+<div id="depositHistory"></div>
+
 </div>
 
 </div>
@@ -282,9 +283,38 @@ amount:document.getElementById("amount").value,
 method:document.getElementById("method").value,
 trxId:document.getElementById("trx").value
 })
+})
+.then(r=>r.json())
+.then(data=>{
+alert(data.message);
+loadDepositHistory();
 });
 
 }
+
+function loadDepositHistory(){
+
+fetch("/user-deposits")
+.then(r=>r.json())
+.then(data=>{
+
+let html="";
+
+if(data.length===0){
+html="No deposits yet";
+}else{
+data.forEach(d=>{
+html+="<div>Amount:"+d.amount+" | Status:"+d.status+"</div>";
+});
+}
+
+document.getElementById("depositHistory").innerHTML=html;
+
+});
+
+}
+
+loadDepositHistory();
 
 /* WITHDRAW */
 
