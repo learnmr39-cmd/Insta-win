@@ -19,11 +19,16 @@ const db = new sqlite3.Database("./database.db");
 
 /* DATABASE */
 
+const db = new sqlite3.Database("./database.db");
+
 db.serialize(()=>{
 
 db.run("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username TEXT,password TEXT,balance INTEGER DEFAULT 100,ref TEXT)");
+
 db.run("CREATE TABLE IF NOT EXISTS wins(id INTEGER PRIMARY KEY,userId INTEGER,amount INTEGER)");
+
 db.run("CREATE TABLE IF NOT EXISTS deposits(id INTEGER PRIMARY KEY,userId INTEGER,amount INTEGER,status TEXT)");
+
 db.run("CREATE TABLE IF NOT EXISTS withdraws(id INTEGER PRIMARY KEY,userId INTEGER,amount INTEGER,status TEXT)");
 
 });
