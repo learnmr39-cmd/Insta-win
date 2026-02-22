@@ -1,68 +1,151 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dashboard</title>
-<link rel="stylesheet" href="style.css">
+<title>Silk Lucky Dashboard</title>
+
+<style>
+
+body{
+background:#0b0b12;
+font-family:Arial;
+color:white;
+text-align:center;
+margin:0;
+}
+
+.container{
+margin-top:40px;
+}
+
+.card{
+background:#141422;
+padding:20px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+margin:auto;
+box-shadow:0 0 20px rgba(255,215,0,0.2);
+}
+
+input,button{
+padding:12px;
+margin:5px;
+border:none;
+border-radius:8px;
+}
+
+button{
+background:gold;
+color:black;
+font-weight:bold;
+cursor:pointer;
+}
+
+canvas{
+margin-top:20px;
+}
+
+</style>
+
 </head>
 
 <body>
 
 <div class="container">
 
-<h2>Lucky Draw Dashboard</h2>
+<div class="card">
+
+<h2>Silk Lucky Draw</h2>
 
 <h3 id="balance">Balance: 0</h3>
 
-<h4>Deposit</h4>
 <form method="POST" action="/deposit">
-<input type="number" name="amount" placeholder="Enter amount" required>
-<button type="submit">Deposit</button>
+<input type="number" name="amount" placeholder="Deposit amount" required>
+<button>Deposit</button>
 </form>
 
-<h4>Withdraw</h4>
 <form method="POST" action="/withdraw">
-<input type="number" name="amount" placeholder="Enter amount" required>
-<button type="submit">Withdraw</button>
+<input type="number" name="amount" placeholder="Withdraw amount" required>
+<button>Withdraw</button>
 </form>
-
-<h3>Lucky Wheel</h3>
 
 <canvas id="wheel" width="300" height="300"></canvas>
 
-<br><br>
+<br>
 
-<button onclick="spin()">Spin Lucky Wheel</button>
+<button onclick="spin()">SPIN NOW</button>
+
+</div>
 
 </div>
 
 <script>
 
 fetch("/balance")
-.then(res => res.json())
-.then(data => {
-document.getElementById("balance").innerText = "Balance: " + data.balance;
+.then(res=>res.json())
+.then(data=>{
+document.getElementById("balance").innerText="Balance: "+data.balance;
 });
 
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+
+const rewards=[0,10,20,50,100,5];
+let rotation=0;
 
 function drawWheel(){
-const colors=["gold","red","blue","green","purple"];
-for(let i=0;i<5;i++){
+const colors=["gold","#ff0055","#00c3ff","#00ff88","#a200ff","#ff8800"];
+for(let i=0;i<6;i++){
 ctx.beginPath();
 ctx.moveTo(150,150);
-ctx.arc(150,150,150,i*(Math.PI*2/5),(i+1)*(Math.PI*2/5));
+ctx.arc(150,150,150,i*(Math.PI*2/6),(i+1)*(Math.PI*2/6));
 ctx.fillStyle=colors[i];
 ctx.fill();
+
+ctx.save();
+ctx.translate(150,150);
+ctx.rotate((i+0.5)*(Math.PI*2/6));
+ctx.fillStyle="white";
+ctx.fillText(rewards[i],80,0);
+ctx.restore();
 }
 }
 
 drawWheel();
 
 function spin(){
-const rewards=[0,10,20,50,100];
+
+let spinAmount=Math.floor(Math.random()*360)+720;
+let start=null;
+
+function animate(timestamp){
+
+if(!start) start=timestamp;
+
+let progress=timestamp-start;
+rotation=spinAmount*(progress/2000);
+
+ctx.clearRect(0,0,300,300);
+
+ctx.save();
+ctx.translate(150,150);
+ctx.rotate(rotation*Math.PI/180);
+ctx.translate(-150,-150);
+drawWheel();
+ctx.restore();
+
+if(progress<2000){
+requestAnimationFrame(animate);
+}else{
+
 const win=rewards[Math.floor(Math.random()*rewards.length)];
 alert("You won "+win);
+
+}
+}
+
+requestAnimationFrame(animate);
+
 }
 
 </script>
