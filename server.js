@@ -11,98 +11,154 @@ app.use(express.json());
 app.use(express.static("public"));
 
 app.use(session({
-  secret: "secretkey",
+  secret: "supersecret",
   resave: false,
   saveUninitialized: true
 }));
 
 const db = new sqlite3.Database("./database.db");
 
-/* DATABASE INIT */
+/* DATABASE */
+
 db.serialize(() => {
-  db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, password TEXT, balance INTEGER DEFAULT 0)");
+  db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, balance INTEGER DEFAULT 0)");
   db.run("CREATE TABLE IF NOT EXISTS deposits (id INTEGER PRIMARY KEY, userId INTEGER, amount INTEGER, method TEXT, trxId TEXT, status TEXT)");
   db.run("CREATE TABLE IF NOT EXISTS withdraws (id INTEGER PRIMARY KEY, userId INTEGER, amount INTEGER, method TEXT, account TEXT, status TEXT)");
 });
 
-/* HEALTH CHECK ROUTE */
-app.get("/health", (req,res)=>{
-  res.send("OK");
-});
-
 /* AUTH */
-function auth(req,res,next){
+
+function userAuth(req,res,next){
   if(!req.session.user) return res.redirect("/");
   next();
 }
 
-/* ROOT */
-app.get("/", (req,res)=>{
+function adminAuth(req,res,next){
+  if(!req.session.admin) return res.redirect("/admin");
+  next();
+}
+
+/* USER ROUTES */
+
+app.get("/",(req,res)=>{
   res.sendFile(path.join(__dirname,"public/login.html"));
 });
 
-/* REGISTER */
 app.get("/register",(req,res)=>{
   res.sendFile(path.join(__dirname,"public/register.html"));
 });
 
 app.post("/register",(req,res)=>{
   const {username,password}=req.body;
-
   db.run("INSERT INTO users(username,password) VALUES(?,?)",[username,password],function(err){
-    if(err){
-      console.log("Register Error:",err);
-      return res.send("Error registering user");
-    }
+    if(err) return res.send("User already exists");
     res.redirect("/");
   });
 });
 
-/* LOGIN */
 app.post("/login",(req,res)=>{
   const {username,password}=req.body;
-
   db.get("SELECT * FROM users WHERE username=? AND password=?",[username,password],(err,user)=>{
-    if(err){
-      console.log("Login Error:",err);
-      return res.send("Login error");
-    }
-
     if(!user) return res.send("Invalid login");
-
     req.session.user=user;
     res.redirect("/dashboard");
   });
 });
 
-/* DASHBOARD */
-app.get("/dashboard",auth,(req,res)=>{
+app.get("/dashboard",userAuth,(req,res)=>{
   res.sendFile(path.join(__dirname,"public/dashboard.html"));
 });
 
-/* BALANCE */
-app.get("/balance",auth,(req,res)=>{
+app.get("/balance",userAuth,(req,res)=>{
   db.get("SELECT balance FROM users WHERE id=?",[req.session.user.id],(err,row)=>{
-    if(err || !row){
-      console.log("Balance Error:",err);
-      return res.json({balance:0});
-    }
     res.json({balance:row.balance});
   });
 });
 
-/* GLOBAL ERROR HANDLING */
-process.on("uncaughtException",(err)=>{
-  console.log("UNCAUGHT ERROR:",err);
+/* DEPOSIT */
+
+app.post("/deposit",userAuth,(req,res)=>{
+  const {amount,method,trxId}=req.body;
+  db.run("INSERT INTO deposits(userId,amount,method,trxId,status) VALUES(?,?,?,?,?)",
+  [req.session.user.id,amount,method,trxId,"pending"]);
+  res.json({message:"Deposit pending approval"});
 });
 
-process.on("unhandledRejection",(err)=>{
-  console.log("PROMISE ERROR:",err);
+/* WITHDRAW */
+
+app.post("/withdraw",userAuth,(req,res)=>{
+  const {amount,method,account}=req.body;
+  db.get("SELECT balance FROM users WHERE id=?",[req.session.user.id],(err,row)=>{
+    if(row.balance < amount) return res.json({message:"Insufficient balance"});
+    db.run("INSERT INTO withdraws(userId,amount,method,account,status) VALUES(?,?,?,?,?)",
+    [req.session.user.id,amount,method,account,"pending"]);
+    res.json({message:"Withdraw pending approval"});
+  });
 });
 
-/* START SERVER */
+/* ADMIN ROUTES */
+
+app.get("/admin",(req,res)=>{
+  res.sendFile(path.join(__dirname,"public/admin-login.html"));
+});
+
+app.post("/admin-login",(req,res)=>{
+  const {username,password}=req.body;
+  if(username==="admin" && password==="admin123"){
+    req.session.admin=true;
+    res.redirect("/admin-dashboard");
+  }else{
+    res.send("Wrong admin login");
+  }
+});
+
+app.get("/admin-dashboard",adminAuth,(req,res)=>{
+  res.sendFile(path.join(__dirname,"public/admin.html"));
+});
+
+/* GET USERS */
+
+app.get("/admin/users",adminAuth,(req,res)=>{
+  db.all("SELECT * FROM users",(err,rows)=>{
+    res.json(rows);
+  });
+});
+
+/* GET DEPOSITS */
+
+app.get("/admin/deposits",adminAuth,(req,res)=>{
+  db.all("SELECT * FROM deposits WHERE status='pending'",(err,rows)=>{
+    res.json(rows);
+  });
+});
+
+/* APPROVE DEPOSIT */
+
+app.post("/admin/approve-deposit",adminAuth,(req,res)=>{
+  const {id,userId,amount}=req.body;
+  db.run("UPDATE deposits SET status='approved' WHERE id=?",[id]);
+  db.run("UPDATE users SET balance = balance + ? WHERE id=?",[amount,userId]);
+  res.json({success:true});
+});
+
+/* GET WITHDRAWS */
+
+app.get("/admin/withdraws",adminAuth,(req,res)=>{
+  db.all("SELECT * FROM withdraws WHERE status='pending'",(err,rows)=>{
+    res.json(rows);
+  });
+});
+
+/* APPROVE WITHDRAW */
+
+app.post("/admin/approve-withdraw",adminAuth,(req,res)=>{
+  const {id,userId,amount}=req.body;
+  db.run("UPDATE withdraws SET status='approved' WHERE id=?",[id]);
+  db.run("UPDATE users SET balance = balance - ? WHERE id=?",[amount,userId]);
+  res.json({success:true});
+});
+
+/* START */
+
 const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
-});
+app.listen(PORT,()=>console.log("Server running on port "+PORT));
