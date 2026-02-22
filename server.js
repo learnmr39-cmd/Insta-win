@@ -38,6 +38,12 @@ next();
 /* PAGES */
 
 app.get("/",(req,res)=>res.sendFile(path.join(__dirname,"public/login.html")));
+
+/* REGISTER PAGE FIX ADDED */
+app.get("/register",(req,res)=>{
+res.sendFile(path.join(__dirname,"public/register.html"));
+});
+
 app.get("/dashboard",userAuth,(req,res)=>res.sendFile(path.join(__dirname,"public/dashboard.html")));
 
 /* REGISTER */
@@ -46,9 +52,15 @@ app.post("/register",(req,res)=>{
 
 const {username,password,ref}=req.body;
 
-db.run("INSERT INTO users(username,password,ref) VALUES(?,?,?)",[username,password,ref]);
+db.run("INSERT INTO users(username,password,ref) VALUES(?,?,?)",[username,password,ref],function(err){
+
+if(err){
+return res.send("User already exists");
+}
 
 res.redirect("/");
+
+});
 
 });
 
@@ -60,7 +72,7 @@ const {username,password}=req.body;
 
 db.get("SELECT * FROM users WHERE username=? AND password=?",[username,password],(err,user)=>{
 
-if(!user) return res.send("Invalid");
+if(!user) return res.send("Invalid login");
 
 req.session.user=user;
 
@@ -132,6 +144,13 @@ res.json({users:u.users,totalWins:w.totalWins||0});
 
 });
 
+});
+
+/* LOGOUT */
+
+app.get("/logout",(req,res)=>{
+req.session.destroy();
+res.redirect("/");
 });
 
 const PORT=process.env.PORT||3000;
