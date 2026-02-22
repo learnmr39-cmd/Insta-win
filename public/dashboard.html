@@ -109,21 +109,14 @@ transition:transform 5s cubic-bezier(.17,.67,.83,.67);
 <div id="balance">Balance:0</div>
 </div>
 
-<!-- HOME -->
-
 <div id="home" class="section active">
-
 <div class="card">
 <div id="wheel"></div>
 <button onclick="spin()">SPIN</button>
 </div>
-
 </div>
 
-<!-- DEPOSIT -->
-
 <div id="deposit" class="section">
-
 <div class="card">
 
 <h3>Deposit</h3>
@@ -143,64 +136,45 @@ transition:transform 5s cubic-bezier(.17,.67,.83,.67);
 <button onclick="nextDeposit()">Next</button>
 
 <div id="paymentBox" style="display:none">
-
 <p id="paymentDetails"></p>
-
 <input id="trx" placeholder="Transaction ID">
-
 <button onclick="submitDeposit()">Submit</button>
-
 </div>
 
 <h4>Your Deposit History</h4>
 <div id="depositHistory"></div>
 
 </div>
-
 </div>
 
-<!-- WITHDRAW -->
-
 <div id="withdraw" class="section">
-
 <div class="card">
 
 <h3>Withdraw</h3>
 
 <input id="wAmount" placeholder="Amount">
-
 <select id="wMethod">
 <option>JazzCash</option>
 <option>EasyPaisa</option>
 </select>
 
 <input id="account" placeholder="Account Number">
-
 <button onclick="submitWithdraw()">Submit Withdraw</button>
 
 </div>
-
 </div>
 
-<!-- WINS -->
-
 <div id="wins" class="section">
-
 <div class="card">
 <h3>Win History</h3>
 <div id="winsList"></div>
 </div>
-
 </div>
 
-<!-- CONTACT -->
-
 <div id="contact" class="section">
-
 <div class="card">
 Support WhatsApp: 03457526986
 </div>
-
 </div>
 
 <script>
@@ -215,8 +189,6 @@ document.getElementById(id).classList.add("active");
 toggle();
 }
 
-/* BALANCE */
-
 function loadBalance(){
 fetch("/balance")
 .then(r=>r.json())
@@ -228,53 +200,31 @@ document.getElementById("balance").innerText="Balance:"+d.balance;
 loadBalance();
 setInterval(loadBalance,4000);
 
-/* SPIN */
-
 function spin(){
-
 fetch("/spin",{method:"POST"})
 .then(r=>r.json())
 .then(data=>{
-
 if(data.error){ alert(data.error); return; }
-
-let wheel=document.getElementById("wheel");
-
-let degree=1440+Math.random()*360;
-
-wheel.style.transform="rotate("+degree+"deg)";
-
+document.getElementById("wheel").style.transform="rotate("+(1440+Math.random()*360)+"deg)";
 loadBalance();
 loadWins();
-
 });
-
 }
-
-/* DEPOSIT */
 
 function setAmount(val){
 document.getElementById("amount").value=val;
 }
 
 function nextDeposit(){
-
 let method=document.getElementById("method").value;
-
-let details="";
-
-if(method==="JazzCash"){
-details="Send to JazzCash<br>Muhammad Zeeshan Afzal<br>03457526986";
-}else{
-details="Send to EasyPaisa<br>Muhammad Zeeshan Afzal<br>03457526986";
-}
-
+let details=(method==="JazzCash")
+?"Send to JazzCash<br>Muhammad Zeeshan Afzal<br>03457526986"
+:"Send to EasyPaisa<br>Muhammad Zeeshan Afzal<br>03457526986";
 document.getElementById("paymentDetails").innerHTML=details;
 document.getElementById("paymentBox").style.display="block";
 }
 
 function submitDeposit(){
-
 fetch("/deposit",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -289,37 +239,23 @@ trxId:document.getElementById("trx").value
 alert(data.message);
 loadDepositHistory();
 });
-
 }
 
 function loadDepositHistory(){
-
 fetch("/user-deposits")
 .then(r=>r.json())
 .then(data=>{
-
 let html="";
-
-if(data.length===0){
-html="No deposits yet";
-}else{
 data.forEach(d=>{
 html+="<div>Amount:"+d.amount+" | Status:"+d.status+"</div>";
 });
-}
-
 document.getElementById("depositHistory").innerHTML=html;
-
 });
-
 }
 
 loadDepositHistory();
 
-/* WITHDRAW */
-
 function submitWithdraw(){
-
 fetch("/withdraw",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -329,27 +265,18 @@ method:document.getElementById("wMethod").value,
 account:document.getElementById("account").value
 })
 });
-
 }
 
-/* WIN HISTORY */
-
 function loadWins(){
-
 fetch("/user-wins")
 .then(r=>r.json())
 .then(data=>{
-
 let html="";
-
 data.forEach(w=>{
 html+="<div>Win:"+w.amount+"</div>";
 });
-
 document.getElementById("winsList").innerHTML=html;
-
 });
-
 }
 
 loadWins();
