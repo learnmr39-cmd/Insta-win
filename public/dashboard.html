@@ -4,240 +4,114 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+body{margin:0;font-family:Arial;background:#0b0b12;color:white}
+.header{background:#141422;padding:15px;display:flex;justify-content:space-between}
+.card{background:#141422;padding:15px;margin:15px;border-radius:10px}
+button{padding:10px;background:gold;border:none;border-radius:8px;margin-top:10px}
+input{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:none}
+#wheel{width:200px;height:200px;margin:auto;border-radius:50%;
+background:conic-gradient(gold 0 60deg,red 60 120deg,blue 120 180deg,green 180 240deg,purple 240 300deg,orange 300 360deg);
+transition:transform 4s ease-out}
 
-body{
-margin:0;
-font-family:Arial;
-background:#0b0b12;
-color:white;
-}
-
-.menu{
+/* NOTIFICATION */
+.notify{
 position:fixed;
-left:-260px;
-top:0;
-width:260px;
-height:100%;
-background:#141422;
-transition:0.3s;
-padding-top:20px;
-}
-
-.menu a{
-display:block;
-padding:15px;
-color:gold;
-text-decoration:none;
-}
-
-.menu.active{left:0}
-
-.header{
-background:#141422;
-padding:15px;
-display:flex;
-justify-content:space-between;
-}
-
-.section{
-display:none;
-padding:15px;
-}
-
-.section.active{
-display:block;
-}
-
-.card{
-background:#141422;
-padding:15px;
+top:-80px;
+left:50%;
+transform:translateX(-50%);
+padding:12px 25px;
 border-radius:10px;
-margin-bottom:10px;
+font-weight:bold;
+transition:0.4s;
+z-index:9999;
 }
-
-button{
-padding:10px;
-background:gold;
-border:none;
-border-radius:8px;
-margin-top:10px;
-}
-
-input,select{
-width:100%;
-padding:10px;
-margin-top:8px;
-border-radius:8px;
-border:none;
-}
-
-#wheel{
-width:250px;
-height:250px;
-margin:auto;
-border-radius:50%;
-background:conic-gradient(
-gold 0deg 60deg,
-red 60deg 120deg,
-blue 120deg 180deg,
-green 180deg 240deg,
-purple 240deg 300deg,
-orange 300deg 360deg
-);
-transition:transform 5s cubic-bezier(.17,.67,.83,.67);
-}
-
+.notify.show{top:20px}
+.notify.success{background:#00c853;color:white}
+.notify.error{background:#ff1744;color:white}
 </style>
-
 </head>
-
 <body>
 
-<div class="menu" id="menu">
-
-<a onclick="show('home')">Home</a>
-<a onclick="show('deposit')">Deposit</a>
-<a onclick="show('withdraw')">Withdraw</a>
-<a onclick="show('wins')">Wins</a>
-<a onclick="show('contact')">Contact</a>
-<a href="/logout">Logout</a>
-
-</div>
+<div id="notifyBox" class="notify"></div>
 
 <div class="header">
-<button onclick="toggle()">☰</button>
+<div>Silk Casino</div>
 <div id="balance">Balance:0</div>
 </div>
 
-<div id="home" class="section active">
 <div class="card">
 <div id="wheel"></div>
 <button onclick="spin()">SPIN</button>
 </div>
-</div>
 
-<div id="deposit" class="section">
 <div class="card">
-
 <h3>Deposit</h3>
-
-<button onclick="setAmount(100)">100</button>
-<button onclick="setAmount(1500)">1500</button>
-<button onclick="setAmount(3500)">3500</button>
-<button onclick="setAmount(5000)">5000</button>
-
-<input id="amount" placeholder="Custom Amount">
-
-<select id="method">
-<option value="JazzCash">JazzCash</option>
-<option value="EasyPaisa">EasyPaisa</option>
-</select>
-
-<button onclick="nextDeposit()">Next</button>
-
-<div id="paymentBox" style="display:none">
-<p id="paymentDetails"></p>
-<input id="trx" placeholder="Transaction ID">
-<button onclick="submitDeposit()">Submit</button>
-</div>
-
-<h4>Your Deposit History</h4>
+<input id="amount" placeholder="Amount">
+<button onclick="submitDeposit()">Submit Deposit</button>
 <div id="depositHistory"></div>
-
-</div>
 </div>
 
-<div id="withdraw" class="section">
 <div class="card">
-
 <h3>Withdraw</h3>
-
 <input id="wAmount" placeholder="Amount">
-<select id="wMethod">
-<option>JazzCash</option>
-<option>EasyPaisa</option>
-</select>
-
-<input id="account" placeholder="Account Number">
 <button onclick="submitWithdraw()">Submit Withdraw</button>
-
-</div>
 </div>
 
-<div id="wins" class="section">
 <div class="card">
 <h3>Win History</h3>
 <div id="winsList"></div>
 </div>
-</div>
-
-<div id="contact" class="section">
-<div class="card">
-Support WhatsApp: 03457526986
-</div>
-</div>
 
 <script>
 
-function toggle(){
-document.getElementById("menu").classList.toggle("active");
-}
-
-function show(id){
-document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-toggle();
+function notify(message,type="success"){
+let box=document.getElementById("notifyBox");
+box.innerText=message;
+box.className="notify show "+type;
+setTimeout(()=>{box.className="notify"},3000);
 }
 
 function loadBalance(){
-fetch("/balance")
-.then(r=>r.json())
-.then(d=>{
+fetch("/balance").then(r=>r.json()).then(d=>{
 document.getElementById("balance").innerText="Balance:"+d.balance;
 });
 }
-
 loadBalance();
-setInterval(loadBalance,4000);
 
 function spin(){
 fetch("/spin",{method:"POST"})
 .then(r=>r.json())
 .then(data=>{
-if(data.error){ alert(data.error); return; }
+if(data.error){notify(data.error,"error");return;}
 document.getElementById("wheel").style.transform="rotate("+(1440+Math.random()*360)+"deg)";
+notify("You won "+data.win,"success");
 loadBalance();
 loadWins();
 });
-}
-
-function setAmount(val){
-document.getElementById("amount").value=val;
-}
-
-function nextDeposit(){
-let method=document.getElementById("method").value;
-let details=(method==="JazzCash")
-?"Send to JazzCash<br>Muhammad Zeeshan Afzal<br>03457526986"
-:"Send to EasyPaisa<br>Muhammad Zeeshan Afzal<br>03457526986";
-document.getElementById("paymentDetails").innerHTML=details;
-document.getElementById("paymentBox").style.display="block";
 }
 
 function submitDeposit(){
 fetch("/deposit",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-amount:document.getElementById("amount").value,
-method:document.getElementById("method").value,
-trxId:document.getElementById("trx").value
-})
+body:JSON.stringify({amount:document.getElementById("amount").value})
 })
 .then(r=>r.json())
 .then(data=>{
-alert(data.message);
+notify(data.message,data.type);
 loadDepositHistory();
+});
+}
+
+function submitWithdraw(){
+fetch("/withdraw",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({amount:document.getElementById("wAmount").value})
+})
+.then(r=>r.json())
+.then(data=>{
+notify(data.message,data.type);
 });
 }
 
@@ -246,42 +120,23 @@ fetch("/user-deposits")
 .then(r=>r.json())
 .then(data=>{
 let html="";
-data.forEach(d=>{
-html+="<div>Amount:"+d.amount+" | Status:"+d.status+"</div>";
-});
+data.forEach(d=>{html+="<div>"+d.amount+" | "+d.status+"</div>"});
 document.getElementById("depositHistory").innerHTML=html;
 });
 }
-
 loadDepositHistory();
-
-function submitWithdraw(){
-fetch("/withdraw",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-amount:document.getElementById("wAmount").value,
-method:document.getElementById("wMethod").value,
-account:document.getElementById("account").value
-})
-});
-}
 
 function loadWins(){
 fetch("/user-wins")
 .then(r=>r.json())
 .then(data=>{
 let html="";
-data.forEach(w=>{
-html+="<div>Win:"+w.amount+"</div>";
-});
+data.forEach(w=>{html+="<div>Win: "+w.amount+"</div>"});
 document.getElementById("winsList").innerHTML=html;
 });
 }
-
 loadWins();
 
 </script>
-
 </body>
 </html>
