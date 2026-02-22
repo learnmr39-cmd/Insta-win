@@ -15,8 +15,6 @@ app.use(session({
   saveUninitialized: true
 }));
 
-/* DATABASE */
-
 const db = new sqlite3.Database("./database.db");
 
 db.serialize(() => {
@@ -31,14 +29,10 @@ db.serialize(() => {
 
 });
 
-/* AUTH MIDDLEWARE */
-
 function userAuth(req, res, next) {
   if (!req.session.user) return res.redirect("/");
   next();
 }
-
-/* ROUTES */
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/login.html"));
@@ -51,8 +45,6 @@ app.get("/register", (req, res) => {
 app.get("/dashboard", userAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "public/dashboard.html"));
 });
-
-/* REGISTER */
 
 app.post("/register", (req, res) => {
 
@@ -68,8 +60,6 @@ app.post("/register", (req, res) => {
   );
 
 });
-
-/* LOGIN */
 
 app.post("/login", (req, res) => {
 
@@ -89,8 +79,6 @@ app.post("/login", (req, res) => {
 
 });
 
-/* BALANCE */
-
 app.get("/balance", userAuth, (req, res) => {
 
   db.get(
@@ -102,8 +90,6 @@ app.get("/balance", userAuth, (req, res) => {
   );
 
 });
-
-/* SPIN */
 
 app.post("/spin", userAuth, (req, res) => {
 
@@ -121,15 +107,8 @@ app.post("/spin", userAuth, (req, res) => {
       const win = rewards[Math.floor(Math.random() * rewards.length)];
       const newBalance = row.balance - 10 + win;
 
-      db.run(
-        "UPDATE users SET balance=? WHERE id=?",
-        [newBalance, req.session.user.id]
-      );
-
-      db.run(
-        "INSERT INTO wins(userId, amount) VALUES (?, ?)",
-        [req.session.user.id, win]
-      );
+      db.run("UPDATE users SET balance=? WHERE id=?", [newBalance, req.session.user.id]);
+      db.run("INSERT INTO wins(userId, amount) VALUES (?, ?)", [req.session.user.id, win]);
 
       res.json({ win, newBalance });
 
@@ -138,76 +117,61 @@ app.post("/spin", userAuth, (req, res) => {
 
 });
 
-/* WIN HISTORY */
-
 app.get("/user-wins", userAuth, (req, res) => {
-
-  db.all(
-    "SELECT * FROM wins WHERE userId=? ORDER BY id DESC",
+  db.all("SELECT * FROM wins WHERE userId=? ORDER BY id DESC",
     [req.session.user.id],
     (err, rows) => {
       res.json(rows);
     }
   );
-
 });
-
-/* DEPOSIT */
 
 app.post("/deposit", userAuth, (req, res) => {
 
   const { amount } = req.body;
 
   if (!amount) {
-    return res.json({ message: "Enter amount" });
+    return res.json({ message: "Enter amount", type: "error" });
   }
 
   db.run(
     "INSERT INTO deposits(userId, amount, status) VALUES (?, ?, ?)",
     [req.session.user.id, amount, "pending"],
     function (err) {
-      if (err) return res.json({ message: "Deposit failed" });
-      res.json({ message: "Deposit submitted. Pending approval." });
+      if (err) return res.json({ message: "Deposit failed", type: "error" });
+      res.json({ message: "Deposit submitted. Pending approval.", type: "success" });
     }
   );
 
 });
 
-/* DEPOSIT HISTORY */
-
 app.get("/user-deposits", userAuth, (req, res) => {
-
-  db.all(
-    "SELECT * FROM deposits WHERE userId=? ORDER BY id DESC",
+  db.all("SELECT * FROM deposits WHERE userId=? ORDER BY id DESC",
     [req.session.user.id],
     (err, rows) => {
       res.json(rows);
     }
   );
-
 });
-
-/* WITHDRAW */
 
 app.post("/withdraw", userAuth, (req, res) => {
 
   const { amount } = req.body;
 
-  db.get(
-    "SELECT balance FROM users WHERE id=?",
+  db.get("SELECT balance FROM users WHERE id=?",
     [req.session.user.id],
     (err, row) => {
 
       if (row.balance < amount) {
-        return res.json({ message: "Insufficient balance" });
+        return res.json({ message: "Insufficient balance", type: "error" });
       }
 
       db.run(
         "INSERT INTO withdraws(userId, amount, status) VALUES (?, ?, ?)",
         [req.session.user.id, amount, "pending"],
         function (err) {
-          if (err) return res.json({ message: "Withdraw failed" });
-          res.json({ message: "Withdraw request submitted." });
+          if (err) return res.json({ message: "Withdraw failed", type: "error" });
+          res.json({ message: "Withdraw request submitted.", type: "success" });
         }
       );
 
@@ -216,28 +180,10 @@ app.post("/withdraw", userAuth, (req, res) => {
 
 });
 
-/* WITHDRAW HISTORY */
-
-app.get("/user-withdraws", userAuth, (req, res) => {
-
-  db.all(
-    "SELECT * FROM withdraws WHERE userId=? ORDER BY id DESC",
-    [req.session.user.id],
-    (err, rows) => {
-      res.json(rows);
-    }
-  );
-
-});
-
-/* LOGOUT */
-
 app.get("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
 });
-
-/* START SERVER */
 
 const PORT = process.env.PORT || 3000;
 
