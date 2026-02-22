@@ -1,48 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Silk Lucky Dashboard</title>
+<title>Silk Lucky Draw</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 
 body{
+margin:0;
 background:#0b0b12;
 font-family:Arial;
 color:white;
-text-align:center;
-margin:0;
 }
 
-.container{
-margin-top:40px;
+.wrapper{
+min-height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+padding:15px;
 }
 
 .card{
 background:#141422;
+border-radius:16px;
 padding:20px;
-border-radius:12px;
-width:90%;
-max-width:400px;
-margin:auto;
-box-shadow:0 0 20px rgba(255,215,0,0.2);
+width:100%;
+max-width:420px;
+box-shadow:0 0 30px rgba(255,215,0,0.25);
+text-align:center;
 }
 
-input,button{
+h2{
+margin-top:0;
+}
+
+input{
+width:100%;
 padding:12px;
-margin:5px;
+margin-top:8px;
+margin-bottom:8px;
 border:none;
-border-radius:8px;
+border-radius:10px;
+font-size:16px;
 }
 
 button{
+width:100%;
+padding:12px;
+margin-top:8px;
+border:none;
+border-radius:10px;
 background:gold;
-color:black;
 font-weight:bold;
+font-size:16px;
 cursor:pointer;
 }
 
 canvas{
+width:100%;
+height:auto;
+max-width:320px;
 margin-top:20px;
+}
+
+@media(min-width:768px){
+.wrapper{
+padding:40px;
+}
+.card{
+max-width:500px;
+}
 }
 
 </style>
@@ -51,7 +80,7 @@ margin-top:20px;
 
 <body>
 
-<div class="container">
+<div class="wrapper">
 
 <div class="card">
 
@@ -70,8 +99,6 @@ margin-top:20px;
 </form>
 
 <canvas id="wheel" width="300" height="300"></canvas>
-
-<br>
 
 <button onclick="spin()">SPIN NOW</button>
 
@@ -114,12 +141,10 @@ ctx.restore();
 drawWheel();
 
 function spin(){
-
 let spinAmount=Math.floor(Math.random()*360)+720;
 let start=null;
 
 function animate(timestamp){
-
 if(!start) start=timestamp;
 
 let progress=timestamp-start;
@@ -137,15 +162,12 @@ ctx.restore();
 if(progress<2000){
 requestAnimationFrame(animate);
 }else{
-
 const win=rewards[Math.floor(Math.random()*rewards.length)];
 alert("You won "+win);
-
 }
 }
 
 requestAnimationFrame(animate);
-
 }
 
 </script>
