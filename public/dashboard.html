@@ -108,21 +108,32 @@ max-width:500px;
 
 <script>
 
+let balance = 0;
+const spinCost = 5;
+
 fetch("/balance")
 .then(res=>res.json())
 .then(data=>{
-document.getElementById("balance").innerText="Balance: "+data.balance;
+balance = data.balance;
+updateBalance();
 });
 
-const canvas=document.getElementById("wheel");
-const ctx=canvas.getContext("2d");
+function updateBalance(){
+document.getElementById("balance").innerText = "Balance: " + balance;
+}
 
-const rewards=[0,10,20,50,100,5];
-let rotation=0;
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+const rewards = [0,10,20,50,100,5];
+let rotation = 0;
 
 function drawWheel(){
+
 const colors=["gold","#ff0055","#00c3ff","#00ff88","#a200ff","#ff8800"];
+
 for(let i=0;i<6;i++){
+
 ctx.beginPath();
 ctx.moveTo(150,150);
 ctx.arc(150,150,150,i*(Math.PI*2/6),(i+1)*(Math.PI*2/6));
@@ -133,22 +144,35 @@ ctx.save();
 ctx.translate(150,150);
 ctx.rotate((i+0.5)*(Math.PI*2/6));
 ctx.fillStyle="white";
-ctx.fillText(rewards[i],80,0);
+ctx.font="bold 20px Arial";
+ctx.fillText(rewards[i],90,0);
 ctx.restore();
+
 }
+
 }
 
 drawWheel();
 
 function spin(){
-let spinAmount=Math.floor(Math.random()*360)+720;
-let start=null;
+
+if(balance < spinCost){
+alert("Not enough balance");
+return;
+}
+
+balance -= spinCost;
+updateBalance();
+
+let spinAmount = Math.floor(Math.random()*360)+1080;
+let start = null;
 
 function animate(timestamp){
-if(!start) start=timestamp;
 
-let progress=timestamp-start;
-rotation=spinAmount*(progress/2000);
+if(!start) start = timestamp;
+
+let progress = timestamp - start;
+rotation = spinAmount * (progress/5000);
 
 ctx.clearRect(0,0,300,300);
 
@@ -159,15 +183,23 @@ ctx.translate(-150,-150);
 drawWheel();
 ctx.restore();
 
-if(progress<2000){
+if(progress < 5000){
 requestAnimationFrame(animate);
 }else{
-const win=rewards[Math.floor(Math.random()*rewards.length)];
-alert("You won "+win);
+
+const win = rewards[Math.floor(Math.random()*rewards.length)];
+
+balance += win;
+updateBalance();
+
+alert("You won " + win);
+
 }
+
 }
 
 requestAnimationFrame(animate);
+
 }
 
 </script>
