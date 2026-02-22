@@ -12,8 +12,6 @@ background:#0b0b12;
 color:white;
 }
 
-/* SIDE MENU */
-
 .menu{
 position:fixed;
 left:-260px;
@@ -35,8 +33,6 @@ text-decoration:none;
 
 .menu.active{left:0}
 
-/* HEADER */
-
 .header{
 background:#141422;
 padding:15px;
@@ -45,20 +41,14 @@ justify-content:space-between;
 align-items:center;
 }
 
-.section{
-display:none;
-padding:15px;
-}
-
-.section.active{
-display:block;
-}
+.section{display:none;padding:15px}
+.section.active{display:block}
 
 .card{
 background:#141422;
 padding:15px;
 border-radius:10px;
-margin-bottom:10px;
+margin-bottom:15px;
 }
 
 button{
@@ -69,6 +59,15 @@ border-radius:8px;
 margin-top:10px;
 }
 
+.amount-btn{
+padding:8px 12px;
+margin:5px;
+background:#222;
+color:gold;
+border-radius:6px;
+display:inline-block;
+}
+
 input,select{
 width:100%;
 padding:10px;
@@ -76,8 +75,6 @@ margin-top:8px;
 border-radius:8px;
 border:none;
 }
-
-/* WHEEL */
 
 #wheel{
 width:250px;
@@ -95,8 +92,6 @@ orange 300deg 360deg
 transition:transform 5s cubic-bezier(.17,.67,.83,.67);
 }
 
-/* NOTIFY */
-
 .notify{
 position:fixed;
 top:-80px;
@@ -108,7 +103,6 @@ font-weight:bold;
 transition:0.4s;
 z-index:9999;
 }
-
 .notify.show{top:20px}
 .notify.success{background:#00c853;color:white}
 .notify.error{background:#ff1744;color:white}
@@ -122,14 +116,12 @@ z-index:9999;
 <div id="notifyBox" class="notify"></div>
 
 <div class="menu" id="menu">
-
 <a onclick="show('home')">Home</a>
 <a onclick="show('deposit')">Deposit</a>
 <a onclick="show('withdraw')">Withdraw</a>
 <a onclick="show('wins')">Wins</a>
 <a onclick="show('contact')">Contact</a>
 <a href="/logout">Logout</a>
-
 </div>
 
 <div class="header">
@@ -153,10 +145,35 @@ z-index:9999;
 
 <h3>Deposit</h3>
 
-<input id="amount" placeholder="Amount">
+<div>
+<span class="amount-btn" onclick="setAmount(100)">100</span>
+<span class="amount-btn" onclick="setAmount(500)">500</span>
+<span class="amount-btn" onclick="setAmount(1500)">1500</span>
+<span class="amount-btn" onclick="setAmount(5000)">5000</span>
+</div>
+
+<input id="amount" placeholder="Custom Amount">
+
+<input id="userMobile" placeholder="Your Mobile Number">
+
+<select id="method">
+<option value="JazzCash">JazzCash</option>
+<option value="EasyPaisa">EasyPaisa</option>
+</select>
+
+<button onclick="nextDeposit()">Next</button>
+
+<div id="paymentBox" style="display:none;margin-top:15px">
+
+<div id="paymentDetails"></div>
+
+<input id="trxId" placeholder="Enter Transaction ID">
+
 <button onclick="submitDeposit()">Submit Deposit</button>
 
-<h4>History</h4>
+</div>
+
+<h4>Your Deposit History</h4>
 <div id="depositHistory"></div>
 
 </div>
@@ -170,6 +187,14 @@ z-index:9999;
 <h3>Withdraw</h3>
 
 <input id="wAmount" placeholder="Amount">
+
+<select id="wMethod">
+<option>JazzCash</option>
+<option>EasyPaisa</option>
+</select>
+
+<input id="wAccount" placeholder="Your Account Number">
+
 <button onclick="submitWithdraw()">Submit Withdraw</button>
 
 </div>
@@ -211,46 +236,42 @@ document.getElementById(id).classList.add("active");
 toggle();
 }
 
-/* BALANCE */
-
 function loadBalance(){
-fetch("/balance")
-.then(r=>r.json())
-.then(d=>{
+fetch("/balance").then(r=>r.json()).then(d=>{
 document.getElementById("balance").innerText="Balance:"+d.balance;
 });
 }
-
 loadBalance();
 setInterval(loadBalance,4000);
 
-/* SPIN */
-
 function spin(){
-
 fetch("/spin",{method:"POST"})
 .then(r=>r.json())
 .then(data=>{
-
-if(data.error){
-notify(data.error,"error");
-return;
-}
-
+if(data.error){notify(data.error,"error");return;}
 let degree=1440+Math.random()*360;
-
 document.getElementById("wheel").style.transform="rotate("+degree+"deg)";
-
 notify("You won "+data.win,"success");
-
 loadBalance();
 loadWins();
-
 });
-
 }
 
-/* DEPOSIT */
+function setAmount(val){
+document.getElementById("amount").value=val;
+}
+
+function nextDeposit(){
+
+let method=document.getElementById("method").value;
+
+let details=(method==="JazzCash")
+?"Send to JazzCash<br>Name: Muhammad Zeeshan Afzal<br>Account: 03457526986"
+:"Send to EasyPaisa<br>Name: Muhammad Zeeshan Afzal<br>Account: 03457526986";
+
+document.getElementById("paymentDetails").innerHTML=details;
+document.getElementById("paymentBox").style.display="block";
+}
 
 function submitDeposit(){
 
@@ -266,33 +287,22 @@ amount:document.getElementById("amount").value
 notify(data.message,data.type);
 loadDepositHistory();
 });
-
 }
 
 function loadDepositHistory(){
-
 fetch("/user-deposits")
 .then(r=>r.json())
 .then(data=>{
-
 let html="";
-
 data.forEach(d=>{
 html+="<div>"+d.amount+" | "+d.status+"</div>";
 });
-
 document.getElementById("depositHistory").innerHTML=html;
-
 });
-
 }
-
 loadDepositHistory();
 
-/* WITHDRAW */
-
 function submitWithdraw(){
-
 fetch("/withdraw",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -304,29 +314,19 @@ amount:document.getElementById("wAmount").value
 .then(data=>{
 notify(data.message,data.type);
 });
-
 }
 
-/* WIN HISTORY */
-
 function loadWins(){
-
 fetch("/user-wins")
 .then(r=>r.json())
 .then(data=>{
-
 let html="";
-
 data.forEach(w=>{
 html+="<div>Win:"+w.amount+"</div>";
 });
-
 document.getElementById("winsList").innerHTML=html;
-
 });
-
 }
-
 loadWins();
 
 </script>
