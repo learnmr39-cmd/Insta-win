@@ -77,3 +77,72 @@ app.post("/withdraw",auth,(req,res)=>{
 });
 
 app.listen(3000,()=>console.log("App running"));
+/* ADMIN LOGIN */
+
+app.get("/admin",(req,res)=>{
+res.sendFile(path.join(__dirname,"public/admin-login.html"));
+});
+
+app.post("/admin-login",(req,res)=>{
+
+const {username,password}=req.body;
+
+if(username==="admin" && password==="admin123"){
+req.session.admin=true;
+res.redirect("/admin-dashboard");
+}else{
+res.send("Wrong admin login");
+}
+
+});
+
+function adminAuth(req,res,next){
+if(!req.session.admin) return res.redirect("/admin");
+next();
+}
+
+app.get("/admin-dashboard",adminAuth,(req,res)=>{
+res.sendFile(path.join(__dirname,"public/admin.html"));
+});
+
+/* GET ALL DEPOSITS */
+
+app.get("/admin/deposits",adminAuth,(req,res)=>{
+db.all("SELECT * FROM deposits WHERE status='pending'",(err,rows)=>{
+res.json(rows);
+});
+});
+
+/* APPROVE DEPOSIT */
+
+app.post("/admin/approve-deposit",adminAuth,(req,res)=>{
+
+const {id,userId,amount}=req.body;
+
+db.run("UPDATE deposits SET status='approved' WHERE id=?",[id]);
+
+db.run("UPDATE users SET balance = balance + ? WHERE id=?",[amount,userId]);
+
+res.json({success:true});
+
+});
+
+/* GET WITHDRAWS */
+
+app.get("/admin/withdraws",adminAuth,(req,res)=>{
+db.all("SELECT * FROM withdraws WHERE status='pending'",(err,rows)=>{
+res.json(rows);
+});
+});
+
+/* APPROVE WITHDRAW */
+
+app.post("/admin/approve-withdraw",adminAuth,(req,res)=>{
+
+const {id}=req.body;
+
+db.run("UPDATE withdraws SET status='approved' WHERE id=?",[id]);
+
+res.json({success:true});
+
+});
