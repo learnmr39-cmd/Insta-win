@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Silk Casino</title>
 
 <style>
 
 body{
 margin:0;
-font-family:Arial;
 background:#0b0b12;
+font-family:Arial;
 color:white;
 }
 
@@ -17,12 +17,12 @@ color:white;
 
 .menu{
 position:fixed;
-left:-250px;
+left:-260px;
 top:0;
-width:250px;
+width:260px;
 height:100%;
 background:#141422;
-transition:0.3s;
+transition:0.4s;
 padding-top:20px;
 }
 
@@ -33,60 +33,38 @@ color:gold;
 text-decoration:none;
 }
 
-.menu a:hover{
-background:#222;
-}
-
-.menu.active{
-left:0;
-}
-
-/* HEADER */
+.menu.active{left:0}
 
 .header{
 background:#141422;
 padding:15px;
 display:flex;
 justify-content:space-between;
-align-items:center;
 }
 
-.balance{
-color:gold;
+.section{display:none;padding:15px}
+.section.active{display:block}
+
+/* WHEEL */
+
+#wheel{
+width:250px;
+height:250px;
+border-radius:50%;
+margin:auto;
+background:conic-gradient(
+gold 0deg 60deg,
+red 60deg 120deg,
+blue 120deg 180deg,
+green 180deg 240deg,
+purple 240deg 300deg,
+orange 300deg 360deg
+);
+transition:transform 5s cubic-bezier(.17,.67,.83,.67);
 }
 
-/* CONTENT */
-
-.section{
-display:none;
-padding:15px;
-}
-
-.section.active{
-display:block;
-}
-
-.card{
-background:#141422;
-padding:15px;
-border-radius:10px;
-margin-bottom:10px;
-}
-
-button{
-padding:10px;
-background:gold;
-border:none;
-border-radius:8px;
-margin-top:10px;
-}
-
-input,select{
-width:100%;
-padding:10px;
-margin-top:8px;
-border-radius:8px;
-border:none;
+.winGlow{
+box-shadow:0 0 30px gold;
 }
 
 </style>
@@ -98,103 +76,41 @@ border:none;
 <div class="menu" id="menu">
 
 <a onclick="show('home')">Home</a>
-<a onclick="show('deposit')">Deposit</a>
-<a onclick="show('withdraw')">Withdraw</a>
 <a onclick="show('wins')">Wins</a>
-<a onclick="show('contact')">Contact</a>
-<a href="/logout">Logout</a>
+<a onclick="show('analytics')">Analytics</a>
 
 </div>
 
 <div class="header">
 <button onclick="toggle()">☰</button>
-<div class="balance" id="balance">Balance: 0</div>
+<div id="balance">Balance:0</div>
 </div>
-
-<!-- HOME -->
 
 <div id="home" class="section active">
 
-<div class="card">
-<h3>Lucky Wheel</h3>
+<div id="wheel"></div>
+
 <button onclick="spin()">SPIN</button>
-</div>
 
 </div>
-
-<!-- DEPOSIT -->
-
-<div id="deposit" class="section">
-
-<div class="card">
-
-<h3>Deposit</h3>
-
-<button onclick="setAmount(100)">100</button>
-<button onclick="setAmount(1500)">1500</button>
-<button onclick="setAmount(3500)">3500</button>
-
-<input id="amount" placeholder="Custom Amount">
-
-<select id="method">
-<option value="JazzCash">JazzCash</option>
-<option value="EasyPaisa">EasyPaisa</option>
-</select>
-
-<button onclick="nextDeposit()">Next</button>
-
-<div id="paymentBox" style="display:none">
-
-<p id="paymentDetails"></p>
-
-<input id="trx" placeholder="Transaction ID">
-
-<button onclick="submitDeposit()">Submit</button>
-
-</div>
-
-</div>
-
-</div>
-
-<!-- WITHDRAW -->
-
-<div id="withdraw" class="section">
-
-<div class="card">
-
-<h3>Withdraw</h3>
-
-<input id="wAmount" placeholder="Amount">
-
-<select id="wMethod">
-<option>JazzCash</option>
-<option>EasyPaisa</option>
-</select>
-
-<input id="account" placeholder="Account Number">
-
-<button onclick="submitWithdraw()">Submit Withdraw</button>
-
-</div>
-
-</div>
-
-<!-- WINS -->
 
 <div id="wins" class="section">
-<div class="card">
-Win history coming soon
-</div>
+
+<h3>Win History</h3>
+
+<div id="winsList"></div>
+
 </div>
 
-<!-- CONTACT -->
+<div id="analytics" class="section">
 
-<div id="contact" class="section">
-<div class="card">
-Support: WhatsApp 03457526986
+<h3>Admin Analytics</h3>
+
+<div id="stats"></div>
+
 </div>
-</div>
+
+<audio id="winSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
 
 <script>
 
@@ -208,76 +124,76 @@ document.getElementById(id).classList.add("active");
 toggle();
 }
 
-/* BALANCE LOAD */
-
 function loadBalance(){
 fetch("/balance")
 .then(r=>r.json())
 .then(d=>{
-document.getElementById("balance").innerText="Balance: "+d.balance;
+document.getElementById("balance").innerText="Balance:"+d.balance;
 });
 }
 
 loadBalance();
-setInterval(loadBalance,5000);
-
-/* DEPOSIT */
-
-function setAmount(val){
-document.getElementById("amount").value=val;
-}
-
-function nextDeposit(){
-
-let method=document.getElementById("method").value;
-
-let details="";
-
-if(method==="JazzCash"){
-details="Send to JazzCash<br>Muhammad Zeeshan Afzal<br>03457526986";
-}else{
-details="Send to EasyPaisa<br>Muhammad Zeeshan Afzal<br>03457526986";
-}
-
-document.getElementById("paymentDetails").innerHTML=details;
-document.getElementById("paymentBox").style.display="block";
-}
-
-function submitDeposit(){
-
-fetch("/deposit",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-amount:document.getElementById("amount").value,
-method:document.getElementById("method").value,
-trxId:document.getElementById("trx").value
-})
-}).then(()=>alert("Deposit Submitted"));
-
-}
-
-/* WITHDRAW */
-
-function submitWithdraw(){
-
-fetch("/withdraw",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-amount:document.getElementById("wAmount").value,
-method:document.getElementById("wMethod").value,
-account:document.getElementById("account").value
-})
-}).then(()=>alert("Withdraw Submitted"));
-
-}
-
-/* SPIN */
+setInterval(loadBalance,4000);
 
 function spin(){
-alert("Spin coming next upgrade");
+
+fetch("/spin",{method:"POST"})
+.then(r=>r.json())
+.then(data=>{
+
+if(data.error){
+alert(data.error);
+return;
 }
+
+let wheel=document.getElementById("wheel");
+
+let degree=1440+Math.random()*360;
+
+wheel.style.transform="rotate("+degree+"deg)";
+
+wheel.classList.add("winGlow");
+
+document.getElementById("winSound").play();
+
+setTimeout(()=>{
+wheel.classList.remove("winGlow");
+loadBalance();
+loadWins();
+},5000);
+
+});
+
+}
+
+function loadWins(){
+
+fetch("/user-wins")
+.then(r=>r.json())
+.then(data=>{
+let html="";
+data.forEach(w=>{
+html+="<div>Win: "+w.amount+"</div>";
+});
+document.getElementById("winsList").innerHTML=html;
+});
+
+}
+
+loadWins();
+
+function loadStats(){
+
+fetch("/admin-stats")
+.then(r=>r.json())
+.then(d=>{
+document.getElementById("stats").innerHTML=
+"Users: "+d.users+"<br>Total Wins: "+d.totalWins;
+});
+
+}
+
+loadStats();
 
 </script>
 
